@@ -404,7 +404,7 @@ async def predict_traits(request: TraitsRequest):
         
         # Generate AI explanation
         if request.language == 'ar':
-            prompt = f\"\"\"اشرح توقع الصفات الوراثية التالية للطفل بناءً على صفات الوالدين:
+            prompt = f"""اشرح توقع الصفات الوراثية التالية للطفل بناءً على صفات الوالدين:
 
 صفات الأم:
 - لون الشعر: {mother.get('hairColor', 'غير محدد')}
