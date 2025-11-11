@@ -467,20 +467,37 @@ async def predict_traits(request: TraitsRequest):
         
         explanation = await get_ai_explanation(prompt, request.language)
         
-        # Save to database
+        # Calculate percentages based on dominance
+        hair_percentage = int((avg_hair / 4) * 100)
+        eye_percentage = int((avg_eye / 5) * 100)
+        skin_percentage = int((avg_skin / 6) * 100)
+        height_percentage = int((avg_height / 3) * 100)
+        
+        # Save to database (with full details for owner/designer)
         prediction = PredictionHistory(
             type="traits",
             data=request.dict(),
             result={
                 "predicted_traits": predicted,
-                "explanation": explanation
+                "percentages": {
+                    "hair": hair_percentage,
+                    "eye": eye_percentage,
+                    "skin": skin_percentage,
+                    "height": height_percentage
+                },
+                "explanation": explanation,
+                "proprietary_info": "حقوق ملكية فكرية - للمصمم فقط"
             }
         )
         await db.predictions.insert_one(prediction.dict())
         
+        # Return only percentages and predicted traits to user (no explanation)
         return TraitsResponse(
-            predicted_traits=predicted,
-            explanation=explanation
+            hair_color_percentage=hair_percentage,
+            eye_color_percentage=eye_percentage,
+            skin_tone_percentage=skin_percentage,
+            height_percentage=height_percentage,
+            predicted_traits=predicted
         )
     except Exception as e:
         logging.error(f"Traits prediction error: {e}")
