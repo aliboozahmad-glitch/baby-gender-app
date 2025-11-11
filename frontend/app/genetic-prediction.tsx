@@ -305,11 +305,11 @@ export default function GeneticPrediction() {
               onPress={() => setBabyGender('male')}
               style={[styles.genderButton, babyGender === 'male' && styles.genderButtonActive]}
             >
-              <Ionicons name="male" size={24} color={babyGender === 'male' ? 'white' : '#4682B4'} />
+              <Ionicons name="male" size={24} color={babyGender === 'male' ? '#4682B4' : '#A0A0A0'} />
               <Text
                 style={[
                   styles.genderButtonText,
-                  babyGender === 'male' && styles.genderButtonTextActive,
+                  babyGender === 'male' && { color: '#4682B4', fontWeight: 'bold' },
                 ]}
               >
                 {t.male}
@@ -319,11 +319,11 @@ export default function GeneticPrediction() {
               onPress={() => setBabyGender('female')}
               style={[styles.genderButton, babyGender === 'female' && styles.genderButtonActive]}
             >
-              <Ionicons name="female" size={24} color={babyGender === 'female' ? 'white' : '#FF69B4'} />
+              <Ionicons name="female" size={24} color={babyGender === 'female' ? '#FF69B4' : '#A0A0A0'} />
               <Text
                 style={[
                   styles.genderButtonText,
-                  babyGender === 'female' && styles.genderButtonTextActive,
+                  babyGender === 'female' && { color: '#FF69B4', fontWeight: 'bold' },
                 ]}
               >
                 {t.female}
