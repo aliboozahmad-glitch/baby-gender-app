@@ -319,6 +319,134 @@ async def get_history():
         logging.error(f"History retrieval error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+class TraitsRequest(BaseModel):
+    mother_traits: dict
+    father_traits: dict
+    language: str = 'ar'
+
+class TraitsResponse(BaseModel):
+    predicted_traits: dict
+    explanation: str
+
+@api_router.post("/predict-traits", response_model=TraitsResponse)
+async def predict_traits(request: TraitsRequest):
+    """Predict physical traits based on parents' characteristics"""
+    try:
+        mother = request.mother_traits
+        father = request.father_traits
+        
+        # Simple genetic prediction logic
+        predicted = {}
+        
+        # Hair Color (simplified genetics - dark is usually dominant)
+        hair_dominance = {'black': 4, 'brown': 3, 'red': 2, 'blonde': 1}
+        mother_hair_score = hair_dominance.get(mother.get('hairColor', 'brown'), 2)
+        father_hair_score = hair_dominance.get(father.get('hairColor', 'brown'), 2)
+        avg_hair = (mother_hair_score + father_hair_score) / 2
+        
+        if avg_hair >= 3.5:
+            predicted['hair_color'] = 'أسود' if request.language == 'ar' else 'Black'
+        elif avg_hair >= 2.5:
+            predicted['hair_color'] = 'بني' if request.language == 'ar' else 'Brown'
+        elif avg_hair >= 1.5:
+            predicted['hair_color'] = 'أحمر' if request.language == 'ar' else 'Red'
+        else:
+            predicted['hair_color'] = 'أشقر' if request.language == 'ar' else 'Blonde'
+        
+        # Eye Color (brown is dominant over green/blue)
+        eye_dominance = {'dark_brown': 5, 'light_brown': 4, 'hazel': 3, 'green': 2, 'blue': 1}
+        mother_eye_score = eye_dominance.get(mother.get('eyeColor', 'dark_brown').replace(' ', '_').lower(), 3)
+        father_eye_score = eye_dominance.get(father.get('eyeColor', 'dark_brown').replace(' ', '_').lower(), 3)
+        avg_eye = (mother_eye_score + father_eye_score) / 2
+        
+        if avg_eye >= 4.5:
+            predicted['eye_color'] = 'بني غامق' if request.language == 'ar' else 'Dark Brown'
+        elif avg_eye >= 3.5:
+            predicted['eye_color'] = 'بني فاتح' if request.language == 'ar' else 'Light Brown'
+        elif avg_eye >= 2.5:
+            predicted['eye_color'] = 'عسلي' if request.language == 'ar' else 'Hazel'
+        elif avg_eye >= 1.5:
+            predicted['eye_color'] = 'أخضر' if request.language == 'ar' else 'Green'
+        else:
+            predicted['eye_color'] = 'أزرق' if request.language == 'ar' else 'Blue'
+        
+        # Skin Tone (blend of parents)
+        skin_scale = {'very_fair': 1, 'fair': 2, 'medium': 3, 'olive': 4, 'brown': 5, 'dark': 6}
+        mother_skin_score = skin_scale.get(mother.get('skinTone', 'medium'), 3)
+        father_skin_score = skin_scale.get(father.get('skinTone', 'medium'), 3)
+        avg_skin = (mother_skin_score + father_skin_score) / 2
+        
+        if avg_skin <= 1.5:
+            predicted['skin_tone'] = 'فاتح جداً' if request.language == 'ar' else 'Very Fair'
+        elif avg_skin <= 2.5:
+            predicted['skin_tone'] = 'فاتح' if request.language == 'ar' else 'Fair'
+        elif avg_skin <= 3.5:
+            predicted['skin_tone'] = 'متوسط' if request.language == 'ar' else 'Medium'
+        elif avg_skin <= 4.5:
+            predicted['skin_tone'] = 'زيتوني' if request.language == 'ar' else 'Olive'
+        elif avg_skin <= 5.5:
+            predicted['skin_tone'] = 'بني' if request.language == 'ar' else 'Brown'
+        else:
+            predicted['skin_tone'] = 'غامق' if request.language == 'ar' else 'Dark'
+        
+        # Height (average of parents with slight variation)
+        height_scale = {'short': 1, 'average': 2, 'tall': 3}
+        mother_height_score = height_scale.get(mother.get('height', 'average'), 2)
+        father_height_score = height_scale.get(father.get('height', 'average'), 2)
+        avg_height = (mother_height_score + father_height_score) / 2
+        
+        if avg_height <= 1.5:
+            predicted['height'] = 'قصير' if request.language == 'ar' else 'Short'
+        elif avg_height <= 2.5:
+            predicted['height'] = 'متوسط' if request.language == 'ar' else 'Average'
+        else:
+            predicted['height'] = 'طويل' if request.language == 'ar' else 'Tall'
+        
+        # Generate AI explanation
+        if request.language == 'ar':
+            prompt = f\"\"\"اشرح توقع الصفات الوراثية التالية للطفل بناءً على صفات الوالدين:
+
+صفات الأم:
+- لون الشعر: {mother.get('hairColor', 'غير محدد')}
+- لون العيون: {mother.get('eyeColor', 'غير محدد')}
+- لون الجلد: {mother.get('skinTone', 'غير محدد')}
+- الطول: {mother.get('height', 'غير محدد')}
+
+صفات الأب:
+- لون الشعر: {father.get('hairColor', 'غير محدد')}
+- لون العيون: {father.get('eyeColor', 'غير محدد')}
+- لون الجلد: {father.get('skinTone', 'غير محدد')}
+- الطول: {father.get('height', 'غير محدد')}
+
+الصفات المتوقعة للطفل:
+- لون الشعر: {predicted['hair_color']}
+- لون العيون: {predicted['eye_color']}
+- لون الجلد: {predicted['skin_tone']}
+- الطول: {predicted['height']}
+
+اشرح بشكل علمي مبسط (5-6 جمل) كيف تنتقل هذه الصفات وراثياً ولماذا هذه هي التوقعات. اذكر الجينات السائدة والمتنحية.\"\"\"\n        else:\n            prompt = f\"\"\"Explain the prediction of the following genetic traits for the child based on parents' characteristics:
+
+Mother's traits:
+- Hair color: {mother.get('hairColor', 'not specified')}
+- Eye color: {mother.get('eyeColor', 'not specified')}
+- Skin tone: {mother.get('skinTone', 'not specified')}
+- Height: {mother.get('height', 'not specified')}
+
+Father's traits:
+- Hair color: {father.get('hairColor', 'not specified')}
+- Eye color: {father.get('eyeColor', 'not specified')}
+- Skin tone: {father.get('skinTone', 'not specified')}
+- Height: {father.get('height', 'not specified')}
+
+Predicted child traits:
+- Hair color: {predicted['hair_color']}
+- Eye color: {predicted['eye_color']}
+- Skin tone: {predicted['skin_tone']}
+- Height: {predicted['height']}
+
+Explain scientifically but simply (5-6 sentences) how these traits are inherited and why these are the predictions. Mention dominant and recessive genes.\"\"\"\n        \n        explanation = await get_ai_explanation(prompt, request.language)\n        
+        # Save to database\n        prediction = PredictionHistory(\n            type=\"traits\",\n            data=request.dict(),\n            result={\n                \"predicted_traits\": predicted,\n                \"explanation\": explanation\n            }\n        )\n        await db.predictions.insert_one(prediction.dict())\n        \n        return TraitsResponse(\n            predicted_traits=predicted,\n            explanation=explanation\n        )\n    except Exception as e:\n        logging.error(f\"Traits prediction error: {e}\")\n        raise HTTPException(status_code=500, detail=str(e))
+
 # Include the router in the main app
 app.include_router(api_router)
 
