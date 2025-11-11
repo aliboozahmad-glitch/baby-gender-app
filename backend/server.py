@@ -149,7 +149,16 @@ async def predict_gender(request: GenderPredictionRequest):
             request.husband_family_children
         )
         
-        # Generate AI explanation
+        # Convert confidence to percentage
+        confidence_map = {
+            'very_low': 40,
+            'low': 55,
+            'medium': 70,
+            'high': 85
+        }
+        confidence_percentage = confidence_map.get(confidence, 70)
+        
+        # Generate AI explanation (stored in DB only, not sent to user)
         if request.language == 'ar':
             prompt = f"""بناءً على الطريقة التقليدية لتوقع نوع الجنين:
 - ترتيب الحمل الحالي: {request.current_pregnancy_order}
