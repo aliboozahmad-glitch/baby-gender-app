@@ -187,7 +187,7 @@ export default function GenderPrediction() {
   }
 
   return (
-    <LinearGradient colors={['#FFB6C1', '#FF69B4', '#FFB6C1']} style={styles.container}>
+    <LinearGradient colors={['#F5E6D3', '#E8D4B8', '#F5E6D3']} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
