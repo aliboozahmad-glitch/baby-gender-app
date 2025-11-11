@@ -313,7 +313,7 @@ Keep the response reassuring and brief (5-6 sentences). Remind about the importa
 async def get_history():
     """Get prediction history"""
     try:
-        predictions = await db.predictions.find().sort("timestamp", -1).limit(50).to_list(50)
+        predictions = await db.predictions.find({}, {"_id": 0}).sort("timestamp", -1).limit(50).to_list(50)
         return predictions
     except Exception as e:
         logging.error(f"History retrieval error: {e}")
