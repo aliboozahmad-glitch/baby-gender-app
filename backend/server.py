@@ -444,8 +444,28 @@ async def predict_traits(request: TraitsRequest):
                 f"- Height: {predicted['height']}\n\n"
                 "Explain scientifically but simply (5-6 sentences) how these traits are inherited and why these are the predictions. Mention dominant and recessive genes."
             )
-            prompt = en_prompt\n        \n        explanation = await get_ai_explanation(prompt, request.language)\n        
-        # Save to database\n        prediction = PredictionHistory(\n            type=\"traits\",\n            data=request.dict(),\n            result={\n                \"predicted_traits\": predicted,\n                \"explanation\": explanation\n            }\n        )\n        await db.predictions.insert_one(prediction.dict())\n        \n        return TraitsResponse(\n            predicted_traits=predicted,\n            explanation=explanation\n        )\n    except Exception as e:\n        logging.error(f\"Traits prediction error: {e}\")\n        raise HTTPException(status_code=500, detail=str(e))
+            prompt = en_prompt
+        
+        explanation = await get_ai_explanation(prompt, request.language)
+        
+        # Save to database
+        prediction = PredictionHistory(
+            type="traits",
+            data=request.dict(),
+            result={
+                "predicted_traits": predicted,
+                "explanation": explanation
+            }
+        )
+        await db.predictions.insert_one(prediction.dict())
+        
+        return TraitsResponse(
+            predicted_traits=predicted,
+            explanation=explanation
+        )
+    except Exception as e:
+        logging.error(f"Traits prediction error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Include the router in the main app
 app.include_router(api_router)
