@@ -41,10 +41,8 @@ class GenderPredictionRequest(BaseModel):
 
 class GenderPredictionResponse(BaseModel):
     predicted_gender: str
-    confidence: str
-    explanation: str
-    wife_pattern: List[str]
-    husband_pattern: List[str]
+    confidence_percentage: int
+    # explanation and patterns stored in DB only, not sent to user
 
 class GeneticDiseaseRequest(BaseModel):
     wife_family_diseases: List[str]
