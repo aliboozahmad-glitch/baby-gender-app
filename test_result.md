@@ -219,3 +219,20 @@ agent_communication:
     - Complete navigation between screens
     
     Backend APIs tested successfully with curl. Frontend needs testing."
+  - agent: "testing"
+    message: "BACKEND TESTING COMPLETED - ALL APIS WORKING ✅
+
+    Comprehensive backend testing performed with 100% success rate (8/8 tests passed):
+    
+    ✅ Health Check (GET /api/) - Returns proper welcome message and version
+    ✅ Gender Prediction (Arabic) - AI explanations in Arabic, proper confidence levels
+    ✅ Gender Prediction (English) - Handles family patterns correctly, valid responses
+    ✅ Gender Prediction (Edge Cases) - High pregnancy orders handled properly
+    ✅ Genetic Diseases (Arabic) - Risk assessment with Arabic AI explanations
+    ✅ Genetic Diseases (English) - Multiple diseases, proper risk levels
+    ✅ Genetic Diseases (Empty Lists) - Edge case handled correctly
+    ✅ History API - Fixed ObjectId serialization issue, now returns prediction history
+    
+    FIXED ISSUE: History endpoint had MongoDB ObjectId serialization error - resolved by excluding _id field.
+    
+    All backend endpoints are fully functional with bilingual support and AI integration."
