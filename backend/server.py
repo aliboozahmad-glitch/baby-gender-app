@@ -278,10 +278,14 @@ Keep the response reassuring and brief (5-6 sentences). Remind about the importa
         # Calculate overall risk
         all_diseases = request.wife_family_diseases + request.husband_family_diseases
         risk_level = "low"
+        risk_percentage = 25
+        
         if len(all_diseases) > 2:
             risk_level = "medium"
+            risk_percentage = 55
         if len(all_diseases) > 4:
             risk_level = "high"
+            risk_percentage = 75
         
         diseases_list = []
         for disease_key, disease_info in genetic_diseases_info.items():
@@ -290,28 +294,30 @@ Keep the response reassuring and brief (5-6 sentences). Remind about the importa
                 'risk_level': disease_info['risk_level']
             })
         
-        # Save to database
-        prediction = PredictionHistory(
-            type="genetic",
-            data=request.dict(),
-            result={
-                "risk_assessment": risk_level,
-                "diseases_info": diseases_list,
-                "detailed_explanation": detailed_explanation
-            }
-        )
-        await db.predictions.insert_one(prediction.dict())
-        
+        # Save to database (with full details for owner/designer)
         if request.language == 'ar':
             recommendations = "يُنصح بإجراء فحص جيني شامل واستشارة طبيب متخصص في الأمراض الوراثية قبل الحمل أو في المراحل المبكرة منه."
         else:
             recommendations = "It is recommended to undergo comprehensive genetic testing and consult a specialist in genetic diseases before pregnancy or in its early stages."
         
+        prediction = PredictionHistory(
+            type="genetic",
+            data=request.dict(),
+            result={
+                "risk_assessment": risk_level,
+                "risk_percentage": risk_percentage,
+                "diseases_info": diseases_list,
+                "recommendations": recommendations,
+                "detailed_explanation": detailed_explanation,
+                "proprietary_info": "حقوق ملكية فكرية - للمصمم فقط"
+            }
+        )
+        await db.predictions.insert_one(prediction.dict())
+        
+        # Return only percentage to user (no explanation or disease details)
         return GeneticDiseaseResponse(
-            risk_assessment=risk_level,
-            diseases_info=diseases_list,
-            recommendations=recommendations,
-            detailed_explanation=detailed_explanation
+            risk_percentage=risk_percentage,
+            risk_level=risk_level
         )
     except Exception as e:
         logging.error(f"Genetic disease prediction error: {e}")
