@@ -151,8 +151,12 @@ export default function GeneticPrediction() {
   };
 
   if (result) {
+    const resultColors = babyGender === 'male' 
+      ? ['#87CEEB', '#4682B4', '#87CEEB'] // أزرق للذكر
+      : ['#FFB6C1', '#FF69B4', '#FFB6C1']; // وردي للأنثى
+    
     return (
-      <LinearGradient colors={['#87CEEB', '#4682B4', '#87CEEB']} style={styles.container}>
+      <LinearGradient colors={resultColors} style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons
