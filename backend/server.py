@@ -339,8 +339,12 @@ class TraitsRequest(BaseModel):
     language: str = 'ar'
 
 class TraitsResponse(BaseModel):
+    hair_color_percentage: int
+    eye_color_percentage: int
+    skin_tone_percentage: int
+    height_percentage: int
     predicted_traits: dict
-    explanation: str
+    # explanation stored in DB only
 
 @api_router.post("/predict-traits", response_model=TraitsResponse)
 async def predict_traits(request: TraitsRequest):
