@@ -428,11 +428,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
+    borderColor: '#D4B896',
   },
   genderButtonActive: {
-    backgroundColor: '#FF69B4',
-    borderColor: '#FF69B4',
+    backgroundColor: 'transparent',
+    borderColor: '#D4B896',
+    borderWidth: 3,
   },
   genderButtonText: {
     marginLeft: 4,
