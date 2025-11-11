@@ -334,6 +334,7 @@ async def predict_traits(request: TraitsRequest):
     try:
         mother = request.mother_traits
         father = request.father_traits
+        lang = request.language
         
         # Simple genetic prediction logic
         predicted = {}
