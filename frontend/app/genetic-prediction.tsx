@@ -457,20 +457,21 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     borderWidth: 2,
-    borderColor: 'white',
+    borderColor: '#D4B896',
   },
   genderButtonActive: {
-    backgroundColor: '#4682B4',
-    borderColor: '#4682B4',
+    backgroundColor: 'transparent',
+    borderColor: '#D4B896',
+    borderWidth: 3,
   },
   genderButtonText: {
     marginLeft: 8,
     fontSize: 16,
     fontWeight: '600',
-    color: '#2D3748',
+    color: '#6B6B6B',
   },
   genderButtonTextActive: {
-    color: 'white',
+    fontWeight: 'bold',
   },
   analyzeButton: {
     backgroundColor: 'white',
