@@ -404,47 +404,47 @@ async def predict_traits(request: TraitsRequest):
         
         # Generate AI explanation
         if request.language == 'ar':
-            prompt = f"""اشرح توقع الصفات الوراثية التالية للطفل بناءً على صفات الوالدين:
-
-صفات الأم:
-- لون الشعر: {mother.get('hairColor', 'غير محدد')}
-- لون العيون: {mother.get('eyeColor', 'غير محدد')}
-- لون الجلد: {mother.get('skinTone', 'غير محدد')}
-- الطول: {mother.get('height', 'غير محدد')}
-
-صفات الأب:
-- لون الشعر: {father.get('hairColor', 'غير محدد')}
-- لون العيون: {father.get('eyeColor', 'غير محدد')}
-- لون الجلد: {father.get('skinTone', 'غير محدد')}
-- الطول: {father.get('height', 'غير محدد')}
-
-الصفات المتوقعة للطفل:
-- لون الشعر: {predicted['hair_color']}
-- لون العيون: {predicted['eye_color']}
-- لون الجلد: {predicted['skin_tone']}
-- الطول: {predicted['height']}
-
-اشرح بشكل علمي مبسط (5-6 جمل) كيف تنتقل هذه الصفات وراثياً ولماذا هذه هي التوقعات. اذكر الجينات السائدة والمتنحية.\"\"\"\n        else:\n            prompt = f\"\"\"Explain the prediction of the following genetic traits for the child based on parents' characteristics:
-
-Mother's traits:
-- Hair color: {mother.get('hairColor', 'not specified')}
-- Eye color: {mother.get('eyeColor', 'not specified')}
-- Skin tone: {mother.get('skinTone', 'not specified')}
-- Height: {mother.get('height', 'not specified')}
-
-Father's traits:
-- Hair color: {father.get('hairColor', 'not specified')}
-- Eye color: {father.get('eyeColor', 'not specified')}
-- Skin tone: {father.get('skinTone', 'not specified')}
-- Height: {father.get('height', 'not specified')}
-
-Predicted child traits:
-- Hair color: {predicted['hair_color']}
-- Eye color: {predicted['eye_color']}
-- Skin tone: {predicted['skin_tone']}
-- Height: {predicted['height']}
-
-Explain scientifically but simply (5-6 sentences) how these traits are inherited and why these are the predictions. Mention dominant and recessive genes.\"\"\"\n        \n        explanation = await get_ai_explanation(prompt, request.language)\n        
+            ar_prompt = (
+                "اشرح توقع الصفات الوراثية التالية للطفل بناءً على صفات الوالدين:\n\n"
+                "صفات الأم:\n"
+                f"- لون الشعر: {mother.get('hairColor', 'غير محدد')}\n"
+                f"- لون العيون: {mother.get('eyeColor', 'غير محدد')}\n"
+                f"- لون الجلد: {mother.get('skinTone', 'غير محدد')}\n"
+                f"- الطول: {mother.get('height', 'غير محدد')}\n\n"
+                "صفات الأب:\n"
+                f"- لون الشعر: {father.get('hairColor', 'غير محدد')}\n"
+                f"- لون العيون: {father.get('eyeColor', 'غير محدد')}\n"
+                f"- لون الجلد: {father.get('skinTone', 'غير محدد')}\n"
+                f"- الطول: {father.get('height', 'غير محدد')}\n\n"
+                "الصفات المتوقعة للطفل:\n"
+                f"- لون الشعر: {predicted['hair_color']}\n"
+                f"- لون العيون: {predicted['eye_color']}\n"
+                f"- لون الجلد: {predicted['skin_tone']}\n"
+                f"- الطول: {predicted['height']}\n\n"
+                "اشرح بشكل علمي مبسط (5-6 جمل) كيف تنتقل هذه الصفات وراثياً ولماذا هذه هي التوقعات. اذكر الجينات السائدة والمتنحية."
+            )
+            prompt = ar_prompt
+        else:
+            en_prompt = (
+                "Explain the prediction of the following genetic traits for the child based on parents' characteristics:\n\n"
+                "Mother's traits:\n"
+                f"- Hair color: {mother.get('hairColor', 'not specified')}\n"
+                f"- Eye color: {mother.get('eyeColor', 'not specified')}\n"
+                f"- Skin tone: {mother.get('skinTone', 'not specified')}\n"
+                f"- Height: {mother.get('height', 'not specified')}\n\n"
+                "Father's traits:\n"
+                f"- Hair color: {father.get('hairColor', 'not specified')}\n"
+                f"- Eye color: {father.get('eyeColor', 'not specified')}\n"
+                f"- Skin tone: {father.get('skinTone', 'not specified')}\n"
+                f"- Height: {father.get('height', 'not specified')}\n\n"
+                "Predicted child traits:\n"
+                f"- Hair color: {predicted['hair_color']}\n"
+                f"- Eye color: {predicted['eye_color']}\n"
+                f"- Skin tone: {predicted['skin_tone']}\n"
+                f"- Height: {predicted['height']}\n\n"
+                "Explain scientifically but simply (5-6 sentences) how these traits are inherited and why these are the predictions. Mention dominant and recessive genes."
+            )
+            prompt = en_prompt\n        \n        explanation = await get_ai_explanation(prompt, request.language)\n        
         # Save to database\n        prediction = PredictionHistory(\n            type=\"traits\",\n            data=request.dict(),\n            result={\n                \"predicted_traits\": predicted,\n                \"explanation\": explanation\n            }\n        )\n        await db.predictions.insert_one(prediction.dict())\n        \n        return TraitsResponse(\n            predicted_traits=predicted,\n            explanation=explanation\n        )\n    except Exception as e:\n        logging.error(f\"Traits prediction error: {e}\")\n        raise HTTPException(status_code=500, detail=str(e))
 
 # Include the router in the main app
