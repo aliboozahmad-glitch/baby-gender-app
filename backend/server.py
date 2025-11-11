@@ -51,10 +51,9 @@ class GeneticDiseaseRequest(BaseModel):
     language: str = 'ar'
 
 class GeneticDiseaseResponse(BaseModel):
-    risk_assessment: str
-    diseases_info: List[dict]
-    recommendations: str
-    detailed_explanation: str
+    risk_percentage: int
+    risk_level: str
+    # detailed_explanation stored in DB only
 
 class PredictionHistory(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
