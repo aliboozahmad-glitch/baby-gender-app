@@ -231,12 +231,12 @@ export default function GenderPrediction() {
                   <Ionicons
                     name="male"
                     size={20}
-                    color={child.gender === 'male' ? 'white' : '#4682B4'}
+                    color={child.gender === 'male' ? '#4682B4' : '#A0A0A0'}
                   />
                   <Text
                     style={[
                       styles.genderButtonText,
-                      child.gender === 'male' && styles.genderButtonTextActive,
+                      child.gender === 'male' && { color: '#4682B4', fontWeight: 'bold' },
                     ]}
                   >
                     {t.male}
@@ -252,12 +252,12 @@ export default function GenderPrediction() {
                   <Ionicons
                     name="female"
                     size={20}
-                    color={child.gender === 'female' ? 'white' : '#FF69B4'}
+                    color={child.gender === 'female' ? '#FF69B4' : '#A0A0A0'}
                   />
                   <Text
                     style={[
                       styles.genderButtonText,
-                      child.gender === 'female' && styles.genderButtonTextActive,
+                      child.gender === 'female' && { color: '#FF69B4', fontWeight: 'bold' },
                     ]}
                   >
                     {t.female}
