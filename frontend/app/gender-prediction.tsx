@@ -43,13 +43,13 @@ export default function GenderPrediction() {
       female: 'أنثى',
       addChild: 'إضافة طفل',
       predict: 'توقع النوع',
-      prediction: 'التوقع',
+      prediction: 'النتيجة',
       boy: 'ولد',
       girl: 'بنت',
-      confidence: 'مستوى الثقة',
-      explanation: 'التفسير',
+      percentage: 'نسبة التوقع',
       back: 'رجوع',
       newPrediction: 'توقع جديد',
+      copyright: 'جميع الحقوق محفوظة - طريقة حسابية خاصة',
     },
     en: {
       title: 'Gender Prediction',
@@ -61,13 +61,13 @@ export default function GenderPrediction() {
       female: 'Female',
       addChild: 'Add Child',
       predict: 'Predict Gender',
-      prediction: 'Prediction',
+      prediction: 'Result',
       boy: 'Boy',
       girl: 'Girl',
-      confidence: 'Confidence Level',
-      explanation: 'Explanation',
+      percentage: 'Prediction Rate',
       back: 'Back',
       newPrediction: 'New Prediction',
+      copyright: 'All Rights Reserved - Proprietary Algorithm',
     },
   };
 
@@ -132,8 +132,8 @@ export default function GenderPrediction() {
 
   if (result) {
     const resultColors = result.predicted_gender === 'male' 
-      ? ['#87CEEB', '#4682B4', '#87CEEB'] // أزرق للذكر
-      : ['#FFB6C1', '#FF69B4', '#FFB6C1']; // وردي للأنثى
+      ? ['#87CEEB', '#4682B4', '#87CEEB']
+      : ['#FFB6C1', '#FF69B4', '#FFB6C1'];
     
     return (
       <LinearGradient colors={resultColors} style={styles.container}>
@@ -161,19 +161,21 @@ export default function GenderPrediction() {
               {result.predicted_gender === 'male' ? t.boy : t.girl}
             </Text>
 
-            <View style={styles.confidenceContainer}>
-              <Text style={[styles.confidenceLabel, language === 'ar' && styles.rtl]}>
-                {t.confidence}:
+            {/* Percentage Display */}
+            <View style={styles.percentageContainer}>
+              <Text style={[styles.percentageLabel, language === 'ar' && styles.rtl]}>
+                {t.percentage}
               </Text>
-              <Text style={styles.confidenceValue}>{result.confidence}</Text>
+              <View style={styles.percentageCircle}>
+                <Text style={styles.percentageValue}>{result.confidence_percentage}%</Text>
+              </View>
             </View>
 
-            <View style={styles.explanationContainer}>
-              <Text style={[styles.explanationTitle, language === 'ar' && styles.rtl]}>
-                {t.explanation}:
-              </Text>
-              <Text style={[styles.explanationText, language === 'ar' && styles.rtl]}>
-                {result.explanation}
+            {/* Copyright Notice */}
+            <View style={styles.copyrightContainer}>
+              <Ionicons name="lock-closed" size={16} color="rgba(255,255,255,0.8)" />
+              <Text style={[styles.copyrightText, language === 'ar' && styles.rtl]}>
+                {t.copyright}
               </Text>
             </View>
 
@@ -194,7 +196,7 @@ export default function GenderPrediction() {
             <Ionicons
               name={language === 'ar' ? 'arrow-forward' : 'arrow-back'}
               size={24}
-              color="white"
+              color="#6B4423"
             />
           </TouchableOpacity>
           <Text style={[styles.title, language === 'ar' && styles.rtl]}>{t.title}</Text>
@@ -267,7 +269,7 @@ export default function GenderPrediction() {
             </View>
           ))}
           <TouchableOpacity onPress={addWifeChild} style={styles.addButton}>
-            <Ionicons name="add-circle" size={24} color="white" />
+            <Ionicons name="add-circle" size={24} color="#8B5E3C" />
             <Text style={styles.addButtonText}>{t.addChild}</Text>
           </TouchableOpacity>
         </View>
@@ -327,7 +329,7 @@ export default function GenderPrediction() {
             </View>
           ))}
           <TouchableOpacity onPress={addHusbandChild} style={styles.addButton}>
-            <Ionicons name="add-circle" size={24} color="white" />
+            <Ionicons name="add-circle" size={24} color="#8B5E3C" />
             <Text style={styles.addButtonText}>{t.addChild}</Text>
           </TouchableOpacity>
         </View>
@@ -339,7 +341,7 @@ export default function GenderPrediction() {
           style={[styles.predictButton, loading && styles.predictButtonDisabled]}
         >
           {loading ? (
-            <ActivityIndicator color="#FF69B4" />
+            <ActivityIndicator color="#8B5E3C" />
           ) : (
             <Text style={styles.predictButtonText}>{t.predict}</Text>
           )}
@@ -368,7 +370,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -376,7 +378,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#6B4423',
     flex: 1,
   },
   rtl: {
@@ -388,7 +390,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: 'white',
+    color: '#6B4423',
     marginBottom: 16,
   },
   input: {
@@ -439,16 +441,13 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontSize: 14,
     fontWeight: '600',
-    color: '#2D3748',
-  },
-  genderButtonTextActive: {
-    color: 'white',
+    color: '#6B6B6B',
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 12,
     padding: 12,
     marginTop: 8,
@@ -457,7 +456,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 16,
     fontWeight: '600',
-    color: 'white',
+    color: '#8B5E3C',
   },
   predictButton: {
     backgroundColor: 'white',
@@ -477,7 +476,7 @@ const styles = StyleSheet.create({
   predictButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FF69B4',
+    color: '#8B5E3C',
   },
   resultContainer: {
     alignItems: 'center',
@@ -502,43 +501,50 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: 'bold',
     color: 'white',
-    marginBottom: 24,
-  },
-  confidenceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-  },
-  confidenceLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2D3748',
-    marginRight: 8,
-  },
-  confidenceValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FF69B4',
-  },
-  explanationContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    padding: 20,
     marginBottom: 32,
   },
-  explanationTitle: {
+  percentageContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  percentageLabel: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#2D3748',
-    marginBottom: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: 16,
   },
-  explanationText: {
-    fontSize: 16,
-    color: '#4A5568',
-    lineHeight: 24,
+  percentageCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  percentageValue: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#2D3748',
+  },
+  copyrightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 20,
+    marginBottom: 32,
+  },
+  copyrightText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginLeft: 8,
+    fontStyle: 'italic',
   },
   newPredictionButton: {
     backgroundColor: 'white',
@@ -550,6 +556,6 @@ const styles = StyleSheet.create({
   newPredictionButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FF69B4',
+    color: '#2D3748',
   },
 });
