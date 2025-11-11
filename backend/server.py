@@ -180,24 +180,26 @@ Explain briefly how this prediction was reached (3-4 sentences only). Remind tha
         
         explanation = await get_ai_explanation(prompt, request.language)
         
-        # Save to database
+        # Save to database (with full details for owner/designer)
         prediction = PredictionHistory(
             type="gender",
             data=request.dict(),
             result={
                 "predicted_gender": predicted_gender,
                 "confidence": confidence,
-                "explanation": explanation
+                "confidence_percentage": confidence_percentage,
+                "explanation": explanation,
+                "wife_pattern": wife_pattern,
+                "husband_pattern": husband_pattern,
+                "proprietary_info": "حقوق ملكية فكرية - للمصمم فقط"
             }
         )
         await db.predictions.insert_one(prediction.dict())
         
+        # Return only percentage to user (no explanation or patterns)
         return GenderPredictionResponse(
             predicted_gender=predicted_gender,
-            confidence=confidence,
-            explanation=explanation,
-            wife_pattern=wife_pattern,
-            husband_pattern=husband_pattern
+            confidence_percentage=confidence_percentage
         )
     except Exception as e:
         logging.error(f"Gender prediction error: {e}")
