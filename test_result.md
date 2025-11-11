@@ -131,15 +131,18 @@ backend:
 
   - task: "History API"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "low"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented but not yet tested."
+      - working: true
+        agent: "testing"
+        comment: "Fixed ObjectId serialization issue in history endpoint. All backend APIs now working: Health check (GET /api/), Gender prediction with Arabic/English support, Genetic diseases prediction with AI explanations, and History retrieval. Comprehensive testing completed with 100% success rate."
 
 frontend:
   - task: "Home Screen with Language Selector"
