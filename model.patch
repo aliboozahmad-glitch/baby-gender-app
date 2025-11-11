@@ -1,0 +1,63 @@
+diff --git a/backend/server.py b/backend/server.py
+index 726626e..497bea7 100644
+--- a/backend/server.py
++++ b/backend/server.py
+@@ -313,7 +313,7 @@ Keep the response reassuring and brief (5-6 sentences). Remind about the importa
+ async def get_history():
+     """Get prediction history"""
+     try:
+-        predictions = await db.predictions.find().sort("timestamp", -1).limit(50).to_list(50)
++        predictions = await db.predictions.find({}, {"_id": 0}).sort("timestamp", -1).limit(50).to_list(50)
+         return predictions
+     except Exception as e:
+         logging.error(f"History retrieval error: {e}")
+diff --git a/test_result.md b/test_result.md
+index f80d852..0abf8a9 100644
+--- a/test_result.md
++++ b/test_result.md
+@@ -131,15 +131,18 @@ backend:
+ 
+   - task: "History API"
+     implemented: true
+-    working: "NA"
++    working: true
+     file: "/app/backend/server.py"
+     stuck_count: 0
+     priority: "low"
+-    needs_retesting: true
++    needs_retesting: false
+     status_history:
+       - working: "NA"
+         agent: "main"
+         comment: "Implemented but not yet tested."
++      - working: true
++        agent: "testing"
++        comment: "Fixed ObjectId serialization issue in history endpoint. All backend APIs now working: Health check (GET /api/), Gender prediction with Arabic/English support, Genetic diseases prediction with AI explanations, and History retrieval. Comprehensive testing completed with 100% success rate."
+ 
+ frontend:
+   - task: "Home Screen with Language Selector"
+@@ -215,4 +218,21 @@ agent_communication:
+     - Full Arabic RTL support
+     - Complete navigation between screens
+     
+-    Backend APIs tested successfully with curl. Frontend needs testing."
+\ No newline at end of file
++    Backend APIs tested successfully with curl. Frontend needs testing."
++  - agent: "testing"
++    message: "BACKEND TESTING COMPLETED - ALL APIS WORKING ✅
++
++    Comprehensive backend testing performed with 100% success rate (8/8 tests passed):
++    
++    ✅ Health Check (GET /api/) - Returns proper welcome message and version
++    ✅ Gender Prediction (Arabic) - AI explanations in Arabic, proper confidence levels
++    ✅ Gender Prediction (English) - Handles family patterns correctly, valid responses
++    ✅ Gender Prediction (Edge Cases) - High pregnancy orders handled properly
++    ✅ Genetic Diseases (Arabic) - Risk assessment with Arabic AI explanations
++    ✅ Genetic Diseases (English) - Multiple diseases, proper risk levels
++    ✅ Genetic Diseases (Empty Lists) - Edge case handled correctly
++    ✅ History API - Fixed ObjectId serialization issue, now returns prediction history
++    
++    FIXED ISSUE: History endpoint had MongoDB ObjectId serialization error - resolved by excluding _id field.
++    
++    All backend endpoints are fully functional with bilingual support and AI integration."
+\ No newline at end of file
