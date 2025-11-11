@@ -123,6 +123,36 @@ export default function Index() {
               </View>
             </LinearGradient>
           </TouchableOpacity>
+
+          {/* Physical Traits Prediction Card */}
+          <TouchableOpacity
+            onPress={() => router.push({ pathname: '/traits-prediction', params: { language } })}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['#DDA15E', '#BC6C25']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.card}
+            >
+              <View style={styles.cardIcon}>
+                <Ionicons name="eye" size={40} color="white" />
+              </View>
+              <Text style={[styles.cardTitle, language === 'ar' && styles.rtl]}>
+                {language === 'ar' ? 'الصفات الوراثية' : 'Physical Traits'}
+              </Text>
+              <Text style={[styles.cardDescription, language === 'ar' && styles.rtl]}>
+                {language === 'ar' ? 'توقع لون الشعر والعيون والجلد والطول' : 'Predict hair, eyes, skin color and height'}
+              </Text>
+              <View style={styles.cardArrow}>
+                <Ionicons 
+                  name={language === 'ar' ? 'arrow-back' : 'arrow-forward'} 
+                  size={24} 
+                  color="white" 
+                />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
 
         {/* Footer */}
