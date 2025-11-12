@@ -333,6 +333,45 @@ async def get_history():
         logging.error(f"History retrieval error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/export-all-data")
+async def export_all_data():
+    """Export all predictions data - For designer/owner only"""
+    try:
+        all_predictions = await db.predictions.find({}, {"_id": 0}).sort("timestamp", -1).to_list(None)
+        
+        return {
+            "total_records": len(all_predictions),
+            "export_date": datetime.utcnow().isoformat(),
+            "data": all_predictions,
+            "note": "هذه البيانات سرية - للمصمم فقط - تحتوي على جميع التفاصيل والشروحات"
+        }
+    except Exception as e:
+        logging.error(f"Export error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/statistics")
+async def get_statistics():
+    """Get database statistics"""
+    try:
+        total_predictions = await db.predictions.count_documents({})
+        gender_predictions = await db.predictions.count_documents({"type": "gender"})
+        genetic_predictions = await db.predictions.count_documents({"type": "genetic"})
+        traits_predictions = await db.predictions.count_documents({"type": "traits"})
+        
+        return {
+            "total_predictions": total_predictions,
+            "by_type": {
+                "gender": gender_predictions,
+                "genetic": genetic_predictions,
+                "traits": traits_predictions
+            },
+            "database_name": "test_database",
+            "collection_name": "predictions"
+        }
+    except Exception as e:
+        logging.error(f"Statistics error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 class TraitsRequest(BaseModel):
     mother_traits: dict
     father_traits: dict
