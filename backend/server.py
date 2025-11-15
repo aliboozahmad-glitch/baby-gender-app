@@ -10,6 +10,7 @@ from typing import List, Optional
 import uuid
 from datetime import datetime
 from emergentintegrations.llm.chat import LlmChat, UserMessage
+from gender_prediction_logic import predict_gender, get_explanation_ar, get_explanation_en
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -139,45 +140,23 @@ async def root():
     return {"message": "Baby Gender & Genetics Prediction API", "version": "1.0"}
 
 @api_router.post("/predict-gender", response_model=GenderPredictionResponse)
-async def predict_gender(request: GenderPredictionRequest):
+async def predict_gender_endpoint(request: GenderPredictionRequest):
     try:
-        # Predict gender using traditional method
-        predicted_gender, confidence, wife_pattern, husband_pattern = predict_gender_from_pattern(
-            request.current_pregnancy_order,
-            request.wife_family_children,
-            request.husband_family_children
-        )
+        # Extract family patterns (up to 3 children)
+        wife_family = [child.gender for child in sorted(request.wife_family_children, key=lambda x: x.order)[:3]]
+        husband_family = [child.gender for child in sorted(request.husband_family_children, key=lambda x: x.order)[:3]]
         
-        # Convert confidence to percentage
-        confidence_map = {
-            'very_low': 40,
-            'low': 55,
-            'medium': 70,
-            'high': 85
-        }
-        confidence_percentage = confidence_map.get(confidence, 70)
+        # Use new prediction system (works with 1, 2, or 3 children)
+        result = predict_gender(wife_family, husband_family, request.current_pregnancy_order)
         
-        # Generate AI explanation (stored in DB only, not sent to user)
+        predicted_gender = result["gender"]
+        confidence_percentage = result["confidence"]
+        
+        # Generate explanation
         if request.language == 'ar':
-            prompt = f"""بناءً على الطريقة التقليدية لتوقع نوع الجنين:
-- ترتيب الحمل الحالي: {request.current_pregnancy_order}
-- نمط عائلة الزوجة: {', '.join(['ذكر' if g == 'male' else 'أنثى' for g in wife_pattern])}
-- نمط عائلة الزوج: {', '.join(['ذكر' if g == 'male' else 'أنثى' for g in husband_pattern])}
-- التوقع: {'ذكر' if predicted_gender == 'male' else 'أنثى'}
-- مستوى الثقة: {confidence}
-
-اشرح كيف تم الوصول لهذا التوقع بطريقة بسيطة ومختصرة (3-4 جمل فقط). مع التذكير أن هذه طريقة تقليدية وليست علمية."""
+            explanation = get_explanation_ar(wife_family, husband_family, predicted_gender, request.current_pregnancy_order)
         else:
-            prompt = f"""Based on the traditional baby gender prediction method:
-- Current pregnancy order: {request.current_pregnancy_order}
-- Wife's family pattern: {', '.join(['Boy' if g == 'male' else 'Girl' for g in wife_pattern])}
-- Husband's family pattern: {', '.join(['Boy' if g == 'male' else 'Girl' for g in husband_pattern])}
-- Prediction: {'Boy' if predicted_gender == 'male' else 'Girl'}
-- Confidence level: {confidence}
-
-Explain briefly how this prediction was reached (3-4 sentences only). Remind that this is a traditional method, not scientific."""
-        
-        explanation = await get_ai_explanation(prompt, request.language)
+            explanation = get_explanation_en(wife_family, husband_family, predicted_gender, request.current_pregnancy_order)
         
         # Save to database (with full details for owner/designer)
         prediction = PredictionHistory(
@@ -185,12 +164,12 @@ Explain briefly how this prediction was reached (3-4 sentences only). Remind tha
             data=request.dict(),
             result={
                 "predicted_gender": predicted_gender,
-                "confidence": confidence,
                 "confidence_percentage": confidence_percentage,
                 "explanation": explanation,
-                "wife_pattern": wife_pattern,
-                "husband_pattern": husband_pattern,
-                "proprietary_info": "حقوق ملكية فكرية - للمصمم فقط"
+                "wife_pattern": wife_family,
+                "husband_pattern": husband_family,
+                "child_number": request.current_pregnancy_order,
+                "proprietary_info": "نظام التوقع الجديد - 36 حالة - حقوق ملكية فكرية"
             }
         )
         await db.predictions.insert_one(prediction.dict())

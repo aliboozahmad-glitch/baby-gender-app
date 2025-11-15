@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  TextInput,
   ActivityIndicator,
   Alert,
 } from 'react-native';
@@ -16,96 +15,123 @@ import axios from 'axios';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
-interface Child {
-  order: number;
-  gender: 'male' | 'female';
-}
+type Gender = 'male' | 'female';
 
 export default function GenderPrediction() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const language = (params.language as 'ar' | 'en') || 'ar';
 
-  const [currentOrder, setCurrentOrder] = useState('1');
-  const [wifeChildren, setWifeChildren] = useState<Child[]>([{ order: 1, gender: 'male' }]);
-  const [husbandChildren, setHusbandChildren] = useState<Child[]>([{ order: 1, gender: 'male' }]);
+  // State: flexible children from wife's family and husband's family (1-3)
+  const [wifeFamily, setWifeFamily] = useState<Gender[]>(['male']);
+  const [husbandFamily, setHusbandFamily] = useState<Gender[]>(['male']);
+  const [childNumber, setChildNumber] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
 
   const translations = {
     ar: {
       title: 'توقع نوع الجنين',
-      currentOrder: 'ترتيب الحمل الحالي',
+      subtitle: 'بناءً على التاريخ العائلي',
       wifeFamily: 'نمط عائلة الزوجة',
       husbandFamily: 'نمط عائلة الزوج',
       child: 'الطفل',
       male: 'ذكر',
       female: 'أنثى',
-      addChild: 'إضافة طفل',
-      predict: 'توقع النوع',
-      prediction: 'النتيجة',
-      boy: 'ولد',
-      girl: 'بنت',
-      percentage: 'نسبة التوقع',
+      whichChild: 'أي طفل تريد توقعه؟',
+      firstChild: 'الطفل الأول',
+      secondChild: 'الطفل الثاني',
+      predict: 'احسب النتيجة',
+      prediction: 'النتيجة المتوقعة',
+      boy: 'ولد 👦',
+      girl: 'بنت 👧',
+      confidence: 'نسبة الدقة',
       back: 'رجوع',
       newPrediction: 'توقع جديد',
-      copyright: 'جميع الحقوق محفوظة - طريقة حسابية خاصة',
+      note: 'ملاحظة: هذا التوقع مبني على التاريخ العائلي وليس فحصاً طبياً',
+      instructions: 'حدد نوع الأطفال من كل عائلة (1-3 أطفال)',
+      addChild: 'إضافة طفل',
+      removeChild: 'حذف طفل',
     },
     en: {
       title: 'Gender Prediction',
-      currentOrder: 'Current Pregnancy Order',
+      subtitle: 'Based on Family History',
       wifeFamily: "Wife's Family Pattern",
       husbandFamily: "Husband's Family Pattern",
       child: 'Child',
-      male: 'Male',
-      female: 'Female',
-      addChild: 'Add Child',
-      predict: 'Predict Gender',
-      prediction: 'Result',
-      boy: 'Boy',
-      girl: 'Girl',
-      percentage: 'Prediction Rate',
+      male: 'Boy',
+      female: 'Girl',
+      whichChild: 'Which child to predict?',
+      firstChild: 'First Child',
+      secondChild: 'Second Child',
+      predict: 'Calculate Result',
+      prediction: 'Predicted Result',
+      boy: 'Boy 👦',
+      girl: 'Girl 👧',
+      confidence: 'Accuracy Rate',
       back: 'Back',
       newPrediction: 'New Prediction',
-      copyright: 'All Rights Reserved - Proprietary Algorithm',
+      note: 'Note: This prediction is based on family history and is not a medical test',
+      instructions: 'Select gender of children from each family (1-3 children)',
+      addChild: 'Add Child',
+      removeChild: 'Remove Child',
     },
   };
 
   const t = translations[language];
 
+  const toggleWifeChild = (index: number) => {
+    const updated = [...wifeFamily];
+    updated[index] = updated[index] === 'male' ? 'female' : 'male';
+    setWifeFamily(updated);
+  };
+
+  const toggleHusbandChild = (index: number) => {
+    const updated = [...husbandFamily];
+    updated[index] = updated[index] === 'male' ? 'female' : 'male';
+    setHusbandFamily(updated);
+  };
+
   const addWifeChild = () => {
-    setWifeChildren([...wifeChildren, { order: wifeChildren.length + 1, gender: 'male' }]);
+    if (wifeFamily.length < 3) {
+      setWifeFamily([...wifeFamily, 'male']);
+    }
+  };
+
+  const removeWifeChild = () => {
+    if (wifeFamily.length > 1) {
+      setWifeFamily(wifeFamily.slice(0, -1));
+    }
   };
 
   const addHusbandChild = () => {
-    setHusbandChildren([...husbandChildren, { order: husbandChildren.length + 1, gender: 'male' }]);
+    if (husbandFamily.length < 3) {
+      setHusbandFamily([...husbandFamily, 'male']);
+    }
   };
 
-  const updateWifeChild = (index: number, gender: 'male' | 'female') => {
-    const updated = [...wifeChildren];
-    updated[index].gender = gender;
-    setWifeChildren(updated);
-  };
-
-  const updateHusbandChild = (index: number, gender: 'male' | 'female') => {
-    const updated = [...husbandChildren];
-    updated[index].gender = gender;
-    setHusbandChildren(updated);
+  const removeHusbandChild = () => {
+    if (husbandFamily.length > 1) {
+      setHusbandFamily(husbandFamily.slice(0, -1));
+    }
   };
 
   const handlePredict = async () => {
-    if (!currentOrder || parseInt(currentOrder) < 1) {
-      Alert.alert(
-        language === 'ar' ? 'خطأ' : 'Error',
-        language === 'ar' ? 'الرجاء إدخال ترتيب الحمل الحالي' : 'Please enter current pregnancy order'
-      );
-      return;
-    }
-
     setLoading(true);
     try {
+      // Prepare data in the format expected by backend
+      const wifeChildren = wifeFamily.map((gender, index) => ({
+        order: index + 1,
+        gender: gender,
+      }));
+
+      const husbandChildren = husbandFamily.map((gender, index) => ({
+        order: index + 1,
+        gender: gender,
+      }));
+
       const response = await axios.post(`${BACKEND_URL}/api/predict-gender`, {
-        current_pregnancy_order: parseInt(currentOrder),
+        current_pregnancy_order: childNumber,
         wife_family_children: wifeChildren,
         husband_family_children: husbandChildren,
         language: language,
@@ -125,15 +151,16 @@ export default function GenderPrediction() {
 
   const resetForm = () => {
     setResult(null);
-    setCurrentOrder('1');
-    setWifeChildren([{ order: 1, gender: 'male' }]);
-    setHusbandChildren([{ order: 1, gender: 'male' }]);
+    setWifeFamily(['male']);
+    setHusbandFamily(['male']);
+    setChildNumber(1);
   };
 
+  // Result Screen
   if (result) {
     const resultColors = result.predicted_gender === 'male' 
-      ? ['#87CEEB', '#4682B4', '#87CEEB']
-      : ['#FFB6C1', '#FF69B4', '#FFB6C1'];
+      ? ['#87CEEB', '#4682B4', '#1E90FF']
+      : ['#FFB6C1', '#FF69B4', '#FF1493'];
     
     return (
       <LinearGradient colors={resultColors} style={styles.container}>
@@ -147,40 +174,37 @@ export default function GenderPrediction() {
           </TouchableOpacity>
 
           <View style={styles.resultContainer}>
-            <Text style={[styles.resultTitle, language === 'ar' && styles.rtl]}>{t.prediction}</Text>
+            <Text style={[styles.resultTitle, language === 'ar' && styles.rtl]}>
+              {t.prediction}
+            </Text>
 
-            <View style={styles.resultIcon}>
-              <Ionicons
-                name={result.predicted_gender === 'male' ? 'male' : 'female'}
-                size={80}
-                color="white"
-              />
+            <View style={styles.genderIcon}>
+              <Text style={styles.genderEmoji}>
+                {result.predicted_gender === 'male' ? '👦' : '👧'}
+              </Text>
             </View>
 
-            <Text style={[styles.resultGender, language === 'ar' && styles.rtl]}>
+            <Text style={[styles.genderText, language === 'ar' && styles.rtl]}>
               {result.predicted_gender === 'male' ? t.boy : t.girl}
             </Text>
 
-            {/* Percentage Display */}
-            <View style={styles.percentageContainer}>
-              <Text style={[styles.percentageLabel, language === 'ar' && styles.rtl]}>
-                {t.percentage}
+            <View style={styles.confidenceContainer}>
+              <Text style={[styles.confidenceLabel, language === 'ar' && styles.rtl]}>
+                {t.confidence}
               </Text>
-              <View style={styles.percentageCircle}>
-                <Text style={styles.percentageValue}>{result.confidence_percentage}%</Text>
-              </View>
+              <Text style={styles.confidenceValue}>
+                {result.confidence_percentage}%
+              </Text>
             </View>
 
-            {/* Copyright Notice */}
-            <View style={styles.copyrightContainer}>
-              <Ionicons name="lock-closed" size={16} color="rgba(255,255,255,0.8)" />
-              <Text style={[styles.copyrightText, language === 'ar' && styles.rtl]}>
-                {t.copyright}
-              </Text>
-            </View>
+            <Text style={[styles.note, language === 'ar' && styles.rtl]}>
+              {t.note}
+            </Text>
 
             <TouchableOpacity onPress={resetForm} style={styles.newPredictionButton}>
-              <Text style={styles.newPredictionButtonText}>{t.newPrediction}</Text>
+              <Text style={[styles.newPredictionText, language === 'ar' && styles.rtl]}>
+                {t.newPrediction}
+              </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -188,164 +212,178 @@ export default function GenderPrediction() {
     );
   }
 
+  // Input Form
   return (
-    <LinearGradient colors={['#F5E6D3', '#E8D4B8', '#F5E6D3']} style={styles.container}>
+    <LinearGradient colors={['#E0BBE4', '#957DAD', '#D291BC']} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons
-              name={language === 'ar' ? 'arrow-forward' : 'arrow-back'}
-              size={24}
-              color="#6B4423"
-            />
-          </TouchableOpacity>
-          <Text style={[styles.title, language === 'ar' && styles.rtl]}>{t.title}</Text>
-        </View>
-
-        {/* Current Order Input */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, language === 'ar' && styles.rtl]}>{t.currentOrder}</Text>
-          <TextInput
-            style={styles.input}
-            value={currentOrder}
-            onChangeText={setCurrentOrder}
-            keyboardType="number-pad"
-            placeholder="1"
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons
+            name={language === 'ar' ? 'arrow-forward' : 'arrow-back'}
+            size={24}
+            color="white"
           />
+        </TouchableOpacity>
+
+        <Text style={[styles.title, language === 'ar' && styles.rtl]}>{t.title}</Text>
+        <Text style={[styles.subtitle, language === 'ar' && styles.rtl]}>{t.subtitle}</Text>
+        
+        <Text style={[styles.instructions, language === 'ar' && styles.rtl]}>
+          {t.instructions}
+        </Text>
+
+        {/* Wife's Family Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, language === 'ar' && styles.rtl]}>
+              {t.wifeFamily}
+            </Text>
+            <View style={styles.addRemoveButtons}>
+              <TouchableOpacity
+                onPress={removeWifeChild}
+                style={[styles.smallButton, wifeFamily.length <= 1 && styles.buttonDisabled]}
+                disabled={wifeFamily.length <= 1}
+              >
+                <Ionicons name="remove" size={20} color={wifeFamily.length <= 1 ? '#ccc' : 'white'} />
+              </TouchableOpacity>
+              <Text style={styles.countText}>{wifeFamily.length}</Text>
+              <TouchableOpacity
+                onPress={addWifeChild}
+                style={[styles.smallButton, wifeFamily.length >= 3 && styles.buttonDisabled]}
+                disabled={wifeFamily.length >= 3}
+              >
+                <Ionicons name="add" size={20} color={wifeFamily.length >= 3 ? '#ccc' : 'white'} />
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          <View style={styles.childrenRow}>
+            {wifeFamily.map((gender, index) => (
+              <TouchableOpacity
+                key={`wife-${index}`}
+                style={[
+                  styles.childButton,
+                  gender === 'male' ? styles.maleButton : styles.femaleButton,
+                ]}
+                onPress={() => toggleWifeChild(index)}
+              >
+                <Text style={styles.childNumber}>{t.child} {index + 1}</Text>
+                <Text style={styles.childGenderEmoji}>
+                  {gender === 'male' ? '👦' : '👧'}
+                </Text>
+                <Text style={styles.childGenderText}>
+                  {gender === 'male' ? t.male : t.female}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        {/* Wife's Family */}
+        {/* Husband's Family Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, language === 'ar' && styles.rtl]}>{t.wifeFamily}</Text>
-          {wifeChildren.map((child, index) => (
-            <View key={index} style={styles.childRow}>
-              <Text style={styles.childLabel}>
-                {t.child} {child.order}
-              </Text>
-              <View style={styles.genderButtons}>
-                <TouchableOpacity
-                  onPress={() => updateWifeChild(index, 'male')}
-                  style={[
-                    styles.genderButton,
-                    child.gender === 'male' && styles.genderButtonActive,
-                  ]}
-                >
-                  <Ionicons
-                    name="male"
-                    size={20}
-                    color={child.gender === 'male' ? '#4682B4' : '#A0A0A0'}
-                  />
-                  <Text
-                    style={[
-                      styles.genderButtonText,
-                      child.gender === 'male' && { color: '#4682B4', fontWeight: 'bold' },
-                    ]}
-                  >
-                    {t.male}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => updateWifeChild(index, 'female')}
-                  style={[
-                    styles.genderButton,
-                    child.gender === 'female' && styles.genderButtonActive,
-                  ]}
-                >
-                  <Ionicons
-                    name="female"
-                    size={20}
-                    color={child.gender === 'female' ? '#FF69B4' : '#A0A0A0'}
-                  />
-                  <Text
-                    style={[
-                      styles.genderButtonText,
-                      child.gender === 'female' && { color: '#FF69B4', fontWeight: 'bold' },
-                    ]}
-                  >
-                    {t.female}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, language === 'ar' && styles.rtl]}>
+              {t.husbandFamily}
+            </Text>
+            <View style={styles.addRemoveButtons}>
+              <TouchableOpacity
+                onPress={removeHusbandChild}
+                style={[styles.smallButton, husbandFamily.length <= 1 && styles.buttonDisabled]}
+                disabled={husbandFamily.length <= 1}
+              >
+                <Ionicons name="remove" size={20} color={husbandFamily.length <= 1 ? '#ccc' : 'white'} />
+              </TouchableOpacity>
+              <Text style={styles.countText}>{husbandFamily.length}</Text>
+              <TouchableOpacity
+                onPress={addHusbandChild}
+                style={[styles.smallButton, husbandFamily.length >= 3 && styles.buttonDisabled]}
+                disabled={husbandFamily.length >= 3}
+              >
+                <Ionicons name="add" size={20} color={husbandFamily.length >= 3 ? '#ccc' : 'white'} />
+              </TouchableOpacity>
             </View>
-          ))}
-          <TouchableOpacity onPress={addWifeChild} style={styles.addButton}>
-            <Ionicons name="add-circle" size={24} color="#8B5E3C" />
-            <Text style={styles.addButtonText}>{t.addChild}</Text>
-          </TouchableOpacity>
+          </View>
+          
+          <View style={styles.childrenRow}>
+            {husbandFamily.map((gender, index) => (
+              <TouchableOpacity
+                key={`husband-${index}`}
+                style={[
+                  styles.childButton,
+                  gender === 'male' ? styles.maleButton : styles.femaleButton,
+                ]}
+                onPress={() => toggleHusbandChild(index)}
+              >
+                <Text style={styles.childNumber}>{t.child} {index + 1}</Text>
+                <Text style={styles.childGenderEmoji}>
+                  {gender === 'male' ? '👦' : '👧'}
+                </Text>
+                <Text style={styles.childGenderText}>
+                  {gender === 'male' ? t.male : t.female}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        {/* Husband's Family */}
+        {/* Child Number Selection */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, language === 'ar' && styles.rtl]}>{t.husbandFamily}</Text>
-          {husbandChildren.map((child, index) => (
-            <View key={index} style={styles.childRow}>
-              <Text style={styles.childLabel}>
-                {t.child} {child.order}
+          <Text style={[styles.sectionTitle, language === 'ar' && styles.rtl]}>
+            {t.whichChild}
+          </Text>
+          
+          <View style={styles.childNumberRow}>
+            <TouchableOpacity
+              style={[
+                styles.childNumberButton,
+                childNumber === 1 && styles.childNumberButtonActive,
+              ]}
+              onPress={() => setChildNumber(1)}
+            >
+              <Text style={[
+                styles.childNumberText,
+                childNumber === 1 && styles.childNumberTextActive,
+                language === 'ar' && styles.rtl
+              ]}>
+                {t.firstChild}
               </Text>
-              <View style={styles.genderButtons}>
-                <TouchableOpacity
-                  onPress={() => updateHusbandChild(index, 'male')}
-                  style={[
-                    styles.genderButton,
-                    child.gender === 'male' && styles.genderButtonActive,
-                  ]}
-                >
-                  <Ionicons
-                    name="male"
-                    size={20}
-                    color={child.gender === 'male' ? '#4682B4' : '#A0A0A0'}
-                  />
-                  <Text
-                    style={[
-                      styles.genderButtonText,
-                      child.gender === 'male' && { color: '#4682B4', fontWeight: 'bold' },
-                    ]}
-                  >
-                    {t.male}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => updateHusbandChild(index, 'female')}
-                  style={[
-                    styles.genderButton,
-                    child.gender === 'female' && styles.genderButtonActive,
-                  ]}
-                >
-                  <Ionicons
-                    name="female"
-                    size={20}
-                    color={child.gender === 'female' ? '#FF69B4' : '#A0A0A0'}
-                  />
-                  <Text
-                    style={[
-                      styles.genderButtonText,
-                      child.gender === 'female' && { color: '#FF69B4', fontWeight: 'bold' },
-                    ]}
-                  >
-                    {t.female}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
-          <TouchableOpacity onPress={addHusbandChild} style={styles.addButton}>
-            <Ionicons name="add-circle" size={24} color="#8B5E3C" />
-            <Text style={styles.addButtonText}>{t.addChild}</Text>
-          </TouchableOpacity>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.childNumberButton,
+                childNumber === 2 && styles.childNumberButtonActive,
+              ]}
+              onPress={() => setChildNumber(2)}
+            >
+              <Text style={[
+                styles.childNumberText,
+                childNumber === 2 && styles.childNumberTextActive,
+                language === 'ar' && styles.rtl
+              ]}>
+                {t.secondChild}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Predict Button */}
         <TouchableOpacity
           onPress={handlePredict}
+          style={styles.predictButton}
           disabled={loading}
-          style={[styles.predictButton, loading && styles.predictButtonDisabled]}
         >
           {loading ? (
-            <ActivityIndicator color="#8B5E3C" />
+            <ActivityIndicator color="white" />
           ) : (
-            <Text style={styles.predictButtonText}>{t.predict}</Text>
+            <Text style={[styles.predictButtonText, language === 'ar' && styles.rtl]}>
+              {t.predict}
+            </Text>
           )}
         </TouchableOpacity>
+
+        <Text style={[styles.noteSmall, language === 'ar' && styles.rtl]}>
+          {t.note}
+        </Text>
       </ScrollView>
     </LinearGradient>
   );
@@ -356,206 +394,256 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    flexGrow: 1,
-    paddingTop: 60,
-    paddingBottom: 40,
-    paddingHorizontal: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 32,
+    padding: 20,
+    paddingTop: 50,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginBottom: 20,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#6B4423',
-    flex: 1,
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: 8,
   },
-  rtl: {
-    writingDirection: 'rtl',
+  subtitle: {
+    fontSize: 16,
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: 20,
+    opacity: 0.9,
+  },
+  instructions: {
+    fontSize: 14,
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 10,
+    borderRadius: 10,
   },
   section: {
-    marginBottom: 32,
+    marginBottom: 25,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#6B4423',
-    marginBottom: 16,
-  },
-  input: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  childRow: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    marginBottom: 15,
   },
-  childLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2D3748',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    flex: 1,
   },
-  genderButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  genderButton: {
+  addRemoveButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#D4B896',
+    gap: 10,
   },
-  genderButtonActive: {
-    backgroundColor: 'transparent',
-    borderColor: '#D4B896',
-    borderWidth: 3,
-  },
-  genderButtonText: {
-    marginLeft: 4,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B6B6B',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  smallButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FF6B9D',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 8,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  addButtonText: {
-    marginLeft: 8,
+  buttonDisabled: {
+    backgroundColor: '#ddd',
+    opacity: 0.5,
+  },
+  countText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    minWidth: 25,
+    textAlign: 'center',
+  },
+  childrenRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  childButton: {
+    flex: 1,
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 15,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  maleButton: {
+    borderWidth: 3,
+    borderColor: '#4682B4',
+  },
+  femaleButton: {
+    borderWidth: 3,
+    borderColor: '#FF69B4',
+  },
+  childNumber: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 5,
+  },
+  childGenderEmoji: {
+    fontSize: 40,
+    marginVertical: 5,
+  },
+  childGenderText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  childNumberRow: {
+    flexDirection: 'row',
+    gap: 15,
+  },
+  childNumberButton: {
+    flex: 1,
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  childNumberButtonActive: {
+    borderColor: '#FFD700',
+    backgroundColor: '#FFF8DC',
+  },
+  childNumberText: {
     fontSize: 16,
+    color: '#666',
     fontWeight: '600',
-    color: '#8B5E3C',
+    marginBottom: 5,
+  },
+  childNumberTextActive: {
+    color: '#333',
+    fontWeight: 'bold',
+  },
+  accuracyHint: {
+    fontSize: 12,
+    color: '#999',
+    fontStyle: 'italic',
   },
   predictButton: {
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: '#FF6B9D',
+    borderRadius: 25,
     padding: 18,
     alignItems: 'center',
-    marginTop: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  predictButtonDisabled: {
-    opacity: 0.6,
-  },
-  predictButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#8B5E3C',
-  },
-  resultContainer: {
-    alignItems: 'center',
-    paddingTop: 40,
-  },
-  resultTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 32,
-  },
-  resultIcon: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  resultGender: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 32,
-  },
-  percentageContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  percentageLabel: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 16,
-  },
-  percentageCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginTop: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowRadius: 4.65,
     elevation: 8,
   },
-  percentageValue: {
-    fontSize: 36,
+  predictButtonText: {
+    color: 'white',
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#2D3748',
   },
-  copyrightContainer: {
-    flexDirection: 'row',
+  noteSmall: {
+    fontSize: 11,
+    color: 'white',
+    textAlign: 'center',
+    marginTop: 15,
+    opacity: 0.8,
+    fontStyle: 'italic',
+  },
+  // Result Screen Styles
+  resultContainer: {
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 20,
-    marginBottom: 32,
+    paddingVertical: 40,
   },
-  copyrightText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginLeft: 8,
+  resultTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 30,
+  },
+  genderIcon: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
+  genderEmoji: {
+    fontSize: 80,
+  },
+  genderText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 30,
+  },
+  confidenceContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 20,
+    minWidth: 200,
+  },
+  confidenceLabel: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 10,
+  },
+  confidenceValue: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#FF6B9D',
+  },
+  note: {
+    fontSize: 13,
+    color: 'white',
+    textAlign: 'center',
+    marginVertical: 20,
+    paddingHorizontal: 20,
+    opacity: 0.9,
     fontStyle: 'italic',
   },
   newPredictionButton: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 18,
-    width: '100%',
-    alignItems: 'center',
+    borderRadius: 25,
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    marginTop: 10,
   },
-  newPredictionButtonText: {
-    fontSize: 18,
+  newPredictionText: {
+    color: '#FF6B9D',
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#2D3748',
+  },
+  rtl: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
 });
