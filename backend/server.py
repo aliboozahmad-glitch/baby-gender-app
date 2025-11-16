@@ -1,7 +1,6 @@
 from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
@@ -11,13 +10,22 @@ import uuid
 from datetime import datetime
 from gender_prediction_logic import predict_gender, get_explanation_ar, get_explanation_en
 
+# Try to import AI chat functionality (optional)
+try:
+    from emergent_llm_chat import LlmChat, UserMessage
+    AI_AVAILABLE = True
+except ImportError:
+    AI_AVAILABLE = False
+    print("Warning: AI chat functionality not available")
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.getenv('MONGO_URL', 'mongodb://localhost:27017')
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.getenv('DB_NAME', 'baby_gender_db')]
+# Get API key for AI functionality (optional)
+EMERGENT_LLM_KEY = os.getenv('EMERGENT_LLM_KEY')
+
+# No database for now - predictions work without saving history
+db = None
 
 # Create the main app without a prefix
 app = FastAPI()
@@ -116,6 +124,9 @@ def predict_gender_from_pattern(current_order: int, wife_children: List[Child], 
 
 # Helper function to get AI explanation
 async def get_ai_explanation(prompt: str, language: str) -> str:
+    if not AI_AVAILABLE or not EMERGENT_LLM_KEY:
+        return "تفسير غير متوفر حالياً" if language == 'ar' else "Explanation not available"
+    
     try:
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
@@ -154,21 +165,25 @@ async def predict_gender_endpoint(request: GenderPredictionRequest):
         else:
             explanation = get_explanation_en(wife_family, husband_family, predicted_gender, request.current_pregnancy_order)
         
-        # Save to database (with full details for owner/designer)
-        prediction = PredictionHistory(
-            type="gender",
-            data=request.dict(),
-            result={
-                "predicted_gender": predicted_gender,
-                "confidence_percentage": confidence_percentage,
-                "explanation": explanation,
-                "wife_pattern": wife_family,
-                "husband_pattern": husband_family,
-                "child_number": request.current_pregnancy_order,
-                "proprietary_info": "نظام التوقع الجديد - 36 حالة - حقوق ملكية فكرية"
-            }
-        )
-        await db.predictions.insert_one(prediction.dict())
+        # Save to database if available (with full details for owner/designer)
+        if db is not None:
+            try:
+                prediction = PredictionHistory(
+                    type="gender",
+                    data=request.dict(),
+                    result={
+                        "predicted_gender": predicted_gender,
+                        "confidence_percentage": confidence_percentage,
+                        "explanation": explanation,
+                        "wife_pattern": wife_family,
+                        "husband_pattern": husband_family,
+                        "child_number": request.current_pregnancy_order,
+                        "proprietary_info": "نظام التوقع الجديد - 52 حالة - حقوق ملكية فكرية"
+                    }
+                )
+                await db.predictions.insert_one(prediction.dict())
+            except Exception as e:
+                print(f"Warning: Failed to save to database: {e}")
         
         # Return only percentage to user (no explanation or patterns)
         return GenderPredictionResponse(
@@ -275,19 +290,24 @@ Keep the response reassuring and brief (5-6 sentences). Remind about the importa
         else:
             recommendations = "It is recommended to undergo comprehensive genetic testing and consult a specialist in genetic diseases before pregnancy or in its early stages."
         
-        prediction = PredictionHistory(
-            type="genetic",
-            data=request.dict(),
-            result={
-                "risk_assessment": risk_level,
-                "risk_percentage": risk_percentage,
-                "diseases_info": diseases_list,
-                "recommendations": recommendations,
-                "detailed_explanation": detailed_explanation,
-                "proprietary_info": "حقوق ملكية فكرية - للمصمم فقط"
-            }
-        )
-        await db.predictions.insert_one(prediction.dict())
+        # Save to database if available (with full details for owner/designer)
+        if db is not None:
+            try:
+                prediction = PredictionHistory(
+                    type="genetic",
+                    data=request.dict(),
+                    result={
+                        "risk_assessment": risk_level,
+                        "risk_percentage": risk_percentage,
+                        "diseases_info": diseases_list,
+                        "recommendations": recommendations,
+                        "detailed_explanation": detailed_explanation,
+                        "proprietary_info": "حقوق ملكية فكرية - للمصمم فقط"
+                    }
+                )
+                await db.predictions.insert_one(prediction.dict())
+            except Exception as e:
+                print(f"Warning: Failed to save to database: {e}")
         
         # Return only percentage to user (no explanation or disease details)
         return GeneticDiseaseResponse(
@@ -301,6 +321,8 @@ Keep the response reassuring and brief (5-6 sentences). Remind about the importa
 @api_router.get("/history")
 async def get_history():
     """Get prediction history"""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not available - history feature disabled")
     try:
         predictions = await db.predictions.find({}, {"_id": 0}).sort("timestamp", -1).limit(50).to_list(50)
         return predictions
@@ -311,6 +333,8 @@ async def get_history():
 @api_router.get("/export-all-data")
 async def export_all_data():
     """Export all predictions data - For designer/owner only"""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not available - export feature disabled")
     try:
         all_predictions = await db.predictions.find({}, {"_id": 0}).sort("timestamp", -1).to_list(None)
         
@@ -327,6 +351,18 @@ async def export_all_data():
 @api_router.get("/statistics")
 async def get_statistics():
     """Get database statistics"""
+    if db is None:
+        return {
+            "total_predictions": 0,
+            "by_type": {
+                "gender": 0,
+                "genetic": 0,
+                "traits": 0
+            },
+            "database_name": "none",
+            "collection_name": "none",
+            "note": "Database not available - statistics feature disabled"
+        }
     try:
         total_predictions = await db.predictions.count_documents({})
         gender_predictions = await db.predictions.count_documents({"type": "gender"})
@@ -366,7 +402,6 @@ async def predict_traits(request: TraitsRequest):
     try:
         mother = request.mother_traits
         father = request.father_traits
-        lang = request.language
         
         # Simple genetic prediction logic
         predicted = {}
@@ -487,23 +522,27 @@ async def predict_traits(request: TraitsRequest):
         skin_percentage = int((avg_skin / 6) * 100)
         height_percentage = int((avg_height / 3) * 100)
         
-        # Save to database (with full details for owner/designer)
-        prediction = PredictionHistory(
-            type="traits",
-            data=request.dict(),
-            result={
-                "predicted_traits": predicted,
-                "percentages": {
-                    "hair": hair_percentage,
-                    "eye": eye_percentage,
-                    "skin": skin_percentage,
-                    "height": height_percentage
-                },
-                "explanation": explanation,
-                "proprietary_info": "حقوق ملكية فكرية - للمصمم فقط"
-            }
-        )
-        await db.predictions.insert_one(prediction.dict())
+        # Save to database if available (with full details for owner/designer)
+        if db is not None:
+            try:
+                prediction = PredictionHistory(
+                    type="traits",
+                    data=request.dict(),
+                    result={
+                        "predicted_traits": predicted,
+                        "percentages": {
+                            "hair": hair_percentage,
+                            "eye": eye_percentage,
+                            "skin": skin_percentage,
+                            "height": height_percentage
+                        },
+                        "explanation": explanation,
+                        "proprietary_info": "حقوق ملكية فكرية - للمصمم فقط"
+                    }
+                )
+                await db.predictions.insert_one(prediction.dict())
+            except Exception as e:
+                print(f"Warning: Failed to save to database: {e}")
         
         # Return only percentages and predicted traits to user (no explanation)
         return TraitsResponse(
@@ -535,6 +574,4 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+# No database client to close
